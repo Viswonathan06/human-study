@@ -74,7 +74,10 @@
   .side { display: grid; gap: 3px; min-width: 0; align-content: start; justify-items: center; }
   .side .name { font-weight: 700; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
   .side { cursor: pointer; border-radius: 12px; padding: 6px; margin: -6px; }
-  .side .tag { font-size: 12px; color: var(--muted); text-align: center; }
+  .side .tag { font-size: 15px; font-weight: 600; color: var(--ink); text-align: center; padding: 4px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
+  .side:hover .tag { border-color: var(--accent); color: var(--accent); }
+  .side:has(input:checked) .tag { border-color: var(--accent); background: var(--accent); }
+  .side:has(input:checked) .tag .chosen { color: #fff; }
   .side .tag .chosen { display: none; color: var(--accent); font-weight: 600; }
   .side:has(input:checked) video { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
   .side:has(input:checked) .name { color: var(--accent); }
@@ -83,7 +86,7 @@
   .side:has(input:focus-visible) video { outline: 2px solid var(--accent); outline-offset: 3px; }
   .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
   /* Clip height follows the viewport so the sentence, both clips and the answers fit on one screen. */
-  video { height: clamp(160px, calc(100vh - 480px), 400px); width: auto; max-width: 100%; aspect-ratio: 360 / 288; display: block; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; }
+  video { height: clamp(160px, calc(100vh - 495px), 400px); width: auto; max-width: 100%; aspect-ratio: 360 / 288; display: block; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; }
   .timeline { display: grid; gap: 2px; }
   .tlrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .track { position: relative; height: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
