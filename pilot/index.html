@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gesture Pairs Pilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one column; the two clips side by side on top (aligned so the marked word starts at the same moment), one shared
+     timeline, the sentence lighting up word by word as it is said (the marked word lights like any other, so it does not
+     suggest where the gesture should be), and one question below.
+     Same tokens as the earlier audit pages, so returning raters see a familiar page. */
+  :root {
+    --bg: #f4f5f8; --panel: #ffffff; --ink: #191b22; --muted: #5f6475;
+    --line: #dfe2ea; --accent: #2f5fd0; --accent-ink: #ffffff; --accent-soft: #e9effc;
+    --warn: #8a5a00; --warn-soft: #fbf3e2; --ok: #1f7a4d; --bad: #b3261e; --chip: #ffffff;
+    --stage: #ffffff; --focus: #b4540a; --focus-soft: #fbe6d4; --focus-ink: #ffffff;
+    --sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #14161c; --panel: #1c1f27; --ink: #e8eaf0; --muted: #9aa0b2;
+      --line: #2e3240; --accent: #7fa3f5; --accent-ink: #0e1422; --accent-soft: #212b42;
+      --warn: #e2b766; --warn-soft: #2c2616; --ok: #5cc98f; --bad: #f08a80; --chip: #232733;
+      --stage: #ffffff; --focus: #f0a35e; --focus-soft: #3a2616; --focus-ink: #1a1006;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #14161c; --panel: #1c1f27; --ink: #e8eaf0; --muted: #9aa0b2;
+    --line: #2e3240; --accent: #7fa3f5; --accent-ink: #0e1422; --accent-soft: #212b42;
+    --warn: #e2b766; --warn-soft: #2c2616; --ok: #5cc98f; --bad: #f08a80; --chip: #232733;
+    --stage: #ffffff; --focus: #f0a35e; --focus-soft: #3a2616; --focus-ink: #1a1006;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); }
+  .wrap { max-width: 960px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+          padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 40px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 20px; }
+  h1 { font-size: 21px; font-weight: 700; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+  h2 { font-size: 17px; margin: 0 0 8px; text-wrap: balance; }
+  .sub { color: var(--muted); font-size: 13.5px; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+  .intro { max-width: 680px; display: grid; gap: 14px; }
+  .intro p, .intro ol { margin: 0; }
+  ol { padding-left: 20px; display: grid; gap: 6px; }
+  .note { color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; }
+  .field { display: grid; gap: 6px; }
+  .field label { font-weight: 600; }
+  .field small { color: var(--muted); }
+  input[type=text] { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+                     padding: 9px 11px; width: 100%; max-width: 220px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; }
+  input:focus-visible, button:focus-visible, .opts label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  button { font: inherit; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.small { font-size: 13px; padding: 5px 12px; font-weight: 500; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .status { font-size: 13px; color: var(--muted); }
+  .status.ok { color: var(--ok); }
+  .status.bad { color: var(--bad); }
+
+  .progress { display: grid; gap: 4px; margin-bottom: 10px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .task { display: grid; gap: 10px; }
+  .sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; justify-items: center; }
+  .side { display: grid; gap: 3px; min-width: 0; align-content: start; justify-items: center; }
+  .side .name { font-weight: 700; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .side { cursor: pointer; border-radius: 12px; padding: 6px; margin: -6px; }
+  .side .tag { font-size: 12px; color: var(--muted); text-align: center; }
+  .side .tag .chosen { display: none; color: var(--accent); font-weight: 600; }
+  .side:has(input:checked) video { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
+  .side:has(input:checked) .name { color: var(--accent); }
+  .side:has(input:checked) .tag .pick { display: none; }
+  .side:has(input:checked) .tag .chosen { display: inline; }
+  .side:has(input:focus-visible) video { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
+  /* Clip height follows the viewport so the sentence, both clips and the answers fit on one screen. */
+  video { height: clamp(160px, calc(100vh - 440px), 400px); width: auto; max-width: 100%; aspect-ratio: 360 / 288; display: block; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; }
+  .timeline { display: grid; gap: 2px; }
+  .tlrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .track { position: relative; height: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .track .head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); }
+  .ticks { font-size: 11px; color: var(--muted); }
+  .words span { border-radius: 4px; transition: background .08s, color .08s; }
+  .words span.now { background: var(--accent-soft); }
+  .controls { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+
+  .speech { border: 1px solid var(--line); border-left: 3px solid var(--focus); border-radius: 6px; padding: 8px 12px; background: var(--panel); }
+  .speech small { color: var(--muted); }
+  .words { font-size: 18px; line-height: 1.6; }
+  .words .target { font-weight: 700; color: var(--focus); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; padding: 1px 3px; }
+  .qs { display: grid; gap: 8px; padding: 12px 16px; }
+  .optrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  .nextrow { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .q { display: grid; gap: 8px; }
+  .label { font-weight: 600; font-size: 15px; }
+  .label b { color: var(--focus); }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .opts label { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; background: var(--chip); font-size: 14px; }
+  .opts label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .opts input { margin: 0; accent-color: var(--accent); }
+  .finish { max-width: 620px; display: grid; gap: 12px; }
+  .finish p { margin: 0; }
+  @media (max-width: 480px) { .words { font-size: 16px; } .opts label { padding: 6px 10px; } .sides { gap: 8px; } video { height: auto; width: 100%; } }
+  @media (prefers-reduced-motion: reduce) { .bar > i, .words span { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Gesture pairs, pilot set</h1>
+    <span class="sub">Two animated figures, one sentence. Which movement shows the meaning of the marked word better?</span>
+  </header>
+
+  <section class="card intro" id="intro">
+    <p>You will see <b id="total">50</b> pairs of short clips on the same figure. For each pair:</p>
+    <ol>
+      <li><b>Read the sentence</b> and note the <b style="color:var(--focus)">marked word</b>. The sentence is shown as transcribed and can be imperfect.</li>
+      <li><b>Watch both figures.</b> They loop together, without sound, and are lined up so the marked word is said at the same moment in both. The sentence under the figures lights up word by word as it is said. <b>The gesture can come before, during or after the word, so judge the whole clip.</b> A figure may stand still for a moment at the start or end of a clip.</li>
+      <li><b>Decide which movement shows the meaning of the marked word better</b>, for example its shape, size, direction or motion, or pointing somewhere that goes with the word. Hand movement that only keeps time with speech does not show a word's meaning.</li>
+      <li><b>Click the figure</b> whose movement shows it better, or choose <b>Neither shows it</b> or <b>Both equally</b> below the clips. If it applies, also tick <b>I can't picture a gesture for this word</b> or <b>The movements are too similar or subtle to tell</b>.</li>
+    </ol>
+    <p class="note">Some pairs come back later with the sides swapped. Please judge each pair on its own, without trying to remember earlier answers.</p>
+    <p>There are no right answers and no time limit. Each answer is saved in this browser when you press <b>Next pair</b>. You can stop at any time and come back later, on the same device and browser, with the same rater code to continue where you left off. <b>When you finish, download your answers file and send it to the person who gave you this link.</b></p>
+    <div class="field">
+      <label for="rater">Your rater code</label>
+      <input type="text" id="rater" maxlength="16" autocomplete="off" placeholder="e.g. VM" spellcheck="false">
+      <small>Letters and digits only. Use the same code every time you return.</small>
+    </div>
+    <div class="row">
+      <span class="status" id="introStatus">Enter a rater code to start.</span>
+      <button class="primary" id="startBtn" disabled>Start</button>
+    </div>
+  </section>
+
+  <section id="task" hidden>
+    <div class="progress">
+      <div class="row"><span class="sub">Rater <b class="mono" id="raterLabel"></b></span><span class="sub mono" id="pos"></span><button class="small" id="dlTask" type="button">Download answers so far</button></div>
+      <div class="bar"><i id="fill"></i></div>
+    </div>
+    <div class="task">
+      <div class="speech"><div class="words" id="utt"></div></div>
+      <div class="sides" id="q1" role="radiogroup" aria-labelledby="q1label">
+        <label class="side" id="sideL">
+          <input type="radio" name="choice" id="cLeft" value="left" class="sr">
+          <div class="name">Left</div>
+          <video id="vidL" autoplay loop muted playsinline preload="auto"></video>
+          <span class="tag"><span class="pick">Click to choose</span><span class="chosen">Chosen</span></span>
+        </label>
+        <label class="side" id="sideR">
+          <input type="radio" name="choice" id="cRight" value="right" class="sr">
+          <div class="name">Right</div>
+          <video id="vidR" autoplay loop muted playsinline preload="auto"></video>
+          <span class="tag"><span class="pick">Click to choose</span><span class="chosen">Chosen</span></span>
+        </label>
+      </div>
+      <div class="timeline">
+        <div class="track" aria-hidden="true"><i class="head" id="head"></i></div>
+        <div class="tlrow"><span class="ticks">0 s</span>
+          <div class="controls"><button class="small" id="restart" type="button">Restart both</button><button class="small" id="slow" type="button" aria-pressed="false">Half speed</button></div>
+          <span class="ticks">4 s</span></div>
+      </div>
+      <div class="card qs">
+        <span class="label" id="q1label">Which movement shows the meaning of “<b id="tw"></b>” better? <span class="sub">Click that figure, or choose:</span></span>
+        <div class="optrow">
+          <div class="opts" id="q2">
+            <label><input type="radio" name="choice" id="cNeither" value="neither">Neither shows it</label>
+            <label><input type="radio" name="choice" id="cBoth" value="both">Both equally</label>
+            <label><input type="checkbox" id="noIdea">Can't picture a gesture for this word</label>
+            <label><input type="checkbox" id="subtle">Too similar or subtle to tell</label>
+          </div>
+          <div class="nextrow"><span class="status" id="hint"></span><button class="primary" id="next" disabled>Next pair</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card finish" id="break" hidden>
+    <h2>Block <span id="blockDone"></span> of <span id="blockTotal"></span> done</h2>
+    <p>Your answers are saved in this browser. Take a break: you can close the page and come back later, on the same device and browser, with the same rater code, and you will continue with the next block.</p>
+    <p>To be safe, download your answers so far now. If your browser clears its storage, the file is the backup.</p>
+    <div class="row"><button id="dlBreak" type="button">Download answers so far</button><button class="primary" id="continueBtn">Continue now</button></div>
+  </section>
+
+  <section class="card finish" id="done" hidden>
+    <h2>Finished. Thank you.</h2>
+    <p>All <span id="doneCount"></span> answers are saved in this browser. <b>Please download the answers file and send it to the person who gave you this link.</b> Without the file, your answers cannot be used.</p>
+    <div class="row"><button class="primary" id="dlDone" type="button">Download answers file</button><button id="showDone" type="button">Show as text instead</button></div>
+    <textarea id="jsonOut" hidden readonly rows="8" style="width:100%;font:12px/1.4 var(--mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px"></textarea>
+    <p class="sub" id="dlStatus"></p>
+  </section>
+</div>
+
+<script src="pairs.js"></script>
+<script>
+const items = window.PAIRS || [];
+const $ = id => document.getElementById(id);
+const PROTOCOL = "hs1b-pilot";
+const STORE_KEY = "hs1b-pilot-rater";
+const CLIP_SECONDS = 4.0;
+const BLOCK = 50;                        // the main set is split into blocks of 50 with a break between them
+let rater = "", i = 0, shownAt = 0, answered = new Set(), saving = false, restarts = 0, slow = false;
+// Answers live in this browser (localStorage), one record per pair, and leave it only as the downloaded JSON file.
+let store = {};                           // pair_id -> record
+let memoryOnly = false;                  // true when localStorage is unavailable (private window etc.)
+const storeKey = () => PROTOCOL + "-responses-" + rater;
+function loadStore() {
+  store = {}; memoryOnly = false;
+  try { const raw = localStorage.getItem(storeKey()); if (raw) store = JSON.parse(raw) || {}; }
+  catch (e) { memoryOnly = true; }
+}
+function persist() {
+  try { localStorage.setItem(storeKey(), JSON.stringify(store)); return true; }
+  catch (e) { memoryOnly = true; return false; }
+}
+function exportObject() {
+  const responses = Object.values(store).sort((a, b) => a.order_shown - b.order_shown);
+  return { schema: "human-study-responses-v2", protocol: PROTOCOL, rater, exported_at: new Date().toISOString(),
+           n_responses: responses.length, n_pairs: items.length, responses };
+}
+function downloadAnswers(statusEl) {
+  const obj = exportObject();
+  const name = "gesture-pairs_" + PROTOCOL + "_" + rater + ".json";
+  try {
+    const blob = new Blob([JSON.stringify(obj, null, 1)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    if (statusEl) statusEl.textContent = "Downloaded " + name + " (" + obj.n_responses + " answers). Send this file to the study contact.";
+  } catch (e) {
+    if (statusEl) statusEl.textContent = "Download failed. Use \"Show as text instead\" and send the text.";
+  }
+}
+$("total").textContent = items.length;
+
+try { const saved = localStorage.getItem(STORE_KEY); if (saved) $("rater").value = saved; } catch (e) {}
+
+function cleanCode(v) { return (v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16); }
+function refreshStart() { $("startBtn").disabled = !cleanCode($("rater").value); }
+$("rater").addEventListener("input", refreshStart);
+
+(() => {
+  let ok = true;
+  try { localStorage.setItem("__probe", "1"); localStorage.removeItem("__probe"); } catch (e) { ok = false; }
+  if (ok) {
+    $("introStatus").textContent = "Ready. Answers are saved in this browser as you go.";
+    $("introStatus").className = "status ok";
+  } else {
+    $("introStatus").textContent = "This browser cannot store answers between visits. Finish in one sitting and download the file at the end.";
+    $("introStatus").className = "status bad";
+  }
+  refreshStart();
+})();
+
+$("startBtn").addEventListener("click", () => {
+  rater = cleanCode($("rater").value);
+  if (!rater) return;
+  try { localStorage.setItem(STORE_KEY, rater); } catch (e) {}
+  loadStore();
+  answered = new Set(Object.keys(store));
+  $("raterLabel").textContent = rater;
+  $("intro").hidden = true;
+  advanceTo(0);
+});
+
+function advanceTo(from) {
+  i = from;
+  while (i < items.length && answered.has(items[i].pair_id)) i++;
+  if (i >= items.length) { finish(); return; }
+  $("task").hidden = false;
+  render();
+}
+
+function setSide(s, side) {
+  const vid = $("vid" + s);
+  vid.src = side.video;
+  vid.playbackRate = slow ? 0.5 : 1;
+}
+
+// words: [text, isTarget, start, end] in seconds of the shared 4-s loop (start null = no time for that word)
+let spans = [];
+function setWords(words) {
+  const utt = $("utt");
+  utt.textContent = "";
+  spans = [];
+  (words || []).forEach(([text, isTarget, st, en], k) => {
+    const span = document.createElement("span");
+    span.textContent = text.replace(/\s+$/, "");
+    if (isTarget) span.className = "target";
+    utt.appendChild(span);
+    if (/\s$/.test(text)) utt.appendChild(document.createTextNode(" "));
+    if (st !== null) spans.push({ el: span, st, en: Math.max(en, st + 0.12), on: false });
+  });
+}
+
+function restartBoth() {
+  const L = $("vidL"), R = $("vidR");
+  L.currentTime = 0; R.currentTime = 0;
+  L.play().catch(() => {}); R.play().catch(() => {});
+}
+
+function render() {
+  const it = items[i];
+  restarts = 0;
+  setSide("L", it.left); setSide("R", it.right);
+  let ready = 0;
+  const go = () => { if (++ready === 2) restartBoth(); };
+  $("vidL").addEventListener("loadeddata", go, { once: true });
+  $("vidR").addEventListener("loadeddata", go, { once: true });
+  $("pos").textContent = "Pair " + (i + 1) + " of " + items.length + " · " + answered.size + " saved";
+  $("fill").style.width = (100 * answered.size / items.length) + "%";
+  setWords(it.words);
+  $("tw").textContent = it.focus_word || "";
+  document.querySelectorAll("input[name=choice]").forEach(e => { e.checked = false; });
+  $("noIdea").checked = false; $("subtle").checked = false;
+  $("next").disabled = true;
+  $("hint").textContent = "";
+  $("hint").className = "status";
+  shownAt = Date.now();
+  window.scrollTo({ top: 0 });
+}
+
+$("restart").addEventListener("click", () => { restarts++; restartBoth(); });
+$("slow").addEventListener("click", () => {
+  slow = !slow;
+  $("slow").setAttribute("aria-pressed", String(slow));
+  $("slow").textContent = slow ? "Normal speed" : "Half speed";
+  $("vidL").playbackRate = $("vidR").playbackRate = slow ? 0.5 : 1;
+  restartBoth();
+});
+
+// Keep the two clips in step (left leads), move the playhead, and light each word of the sentence while it is said.
+
+function tick() {
+  if (!$("task").hidden && items[i]) {
+    const L = $("vidL"), R = $("vidR");
+    if (L.readyState >= 2 && R.readyState >= 2 && !L.seeking && !R.seeking) {
+      const d = L.currentTime - R.currentTime;
+      if (Math.abs(d) > 0.12 && Math.abs(d) < CLIP_SECONDS - 0.3) R.currentTime = L.currentTime;
+    }
+    const t = Math.min(L.currentTime, CLIP_SECONDS);
+    $("head").style.left = (100 * t / CLIP_SECONDS) + "%";
+    for (const w of spans) {
+      const on = t >= w.st && t < w.en;
+      if (on !== w.on) { w.el.classList.toggle("now", on); w.on = on; }
+    }
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function check() {
+  const c = document.querySelector("input[name=choice]:checked");
+  $("next").disabled = saving || !c;
+  $("hint").textContent = c ? "" : "Choose an answer to continue.";
+}
+$("q1").addEventListener("change", check);
+$("q2").addEventListener("change", check);
+$("noIdea").addEventListener("change", check);
+$("subtle").addEventListener("change", check);
+
+$("next").addEventListener("click", () => {
+  if (saving) return;
+  const it = items[i];
+  const choice = document.querySelector("input[name=choice]:checked");
+  if (!choice) return;
+  const record = {
+    rater,
+    pair_id: it.pair_id,
+    choice: choice.value,
+    cant_picture: $("noIdea").checked,
+    too_subtle: $("subtle").checked,
+    too_unclear: $("noIdea").checked || $("subtle").checked,
+    seconds_spent: Math.round((Date.now() - shownAt) / 100) / 10,
+    restarts,
+    half_speed: slow,
+    order_shown: i,
+    protocol: PROTOCOL,
+    saved_at: new Date().toISOString(),
+    block: Math.floor(i / BLOCK) + 1,
+    schema: "human-study-responses-v2"
+  };
+  saving = true;
+  $("next").disabled = true;
+  store[it.pair_id] = record;
+  const kept = persist();
+  saving = false;
+  answered.add(it.pair_id);
+  if (!kept) { $("hint").className = "status bad"; $("hint").textContent = "Saved for this visit only. Download the file before closing the page."; }
+  if ((i + 1) % BLOCK === 0 && i + 1 < items.length) { pauseBlock((i + 1) / BLOCK); return; }
+  advanceTo(i + 1);
+});
+
+function pauseBlock(k) {
+  $("task").hidden = true;
+  $("vidL").pause(); $("vidR").pause();
+  $("blockDone").textContent = k;
+  $("blockTotal").textContent = Math.ceil(items.length / BLOCK);
+  $("break").hidden = false;
+  window.scrollTo({ top: 0 });
+}
+$("continueBtn").addEventListener("click", () => { $("break").hidden = true; advanceTo(i + 1); });
+$("dlTask").addEventListener("click", () => downloadAnswers($("hint")));
+$("dlBreak").addEventListener("click", () => downloadAnswers(null));
+$("dlDone").addEventListener("click", () => downloadAnswers($("dlStatus")));
+$("showDone").addEventListener("click", () => { const t = $("jsonOut"); t.hidden = false; t.value = JSON.stringify(exportObject()); t.focus(); t.select(); $("dlStatus").textContent = "Copy all of this text and send it to the study contact."; });
+
+function finish() {
+  $("task").hidden = true;
+  $("vidL").pause(); $("vidR").pause();
+  $("doneCount").textContent = answered.size;
+  $("done").hidden = false;
+}
+</script>
+</body>
+</html>
