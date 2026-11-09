@@ -86,11 +86,15 @@
   video { height: clamp(160px, calc(100vh - 440px), 400px); width: auto; max-width: 100%; aspect-ratio: 360 / 288; display: block; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; }
   .timeline { display: grid; gap: 2px; }
   .tlrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .track { position: relative; height: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .track { position: relative; height: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
   .track .head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); }
+  .track .wordmark { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: var(--focus); border-radius: 2px; }
+  .track .wordmark::after { content: "word"; position: absolute; top: -15px; left: 5px; font-size: 10px; line-height: 1; color: var(--focus); font-weight: 600; letter-spacing: 0.04em; }
+  .track { overflow: visible; margin-top: 14px; }
   .ticks { font-size: 11px; color: var(--muted); }
   .words span { border-radius: 4px; transition: background .08s, color .08s; }
   .words span.now { background: var(--accent-soft); }
+  .words span.target.now { background: var(--focus); color: var(--focus-ink); text-decoration-color: var(--focus-ink); }
   .controls { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
 
   .speech { border: 1px solid var(--line); border-left: 3px solid var(--focus); border-radius: 6px; padding: 8px 12px; background: var(--panel); }
@@ -124,7 +128,7 @@
     <p>You will see <b id="total">50</b> pairs of short clips on the same figure. For each pair:</p>
     <ol>
       <li><b>Read the sentence</b> and note the <b style="color:var(--focus)">marked word</b>. The sentence is shown as transcribed and can be imperfect.</li>
-      <li><b>Watch both figures.</b> They loop together, without sound, and are lined up so the marked word is said at the same moment in both. The sentence under the figures lights up word by word as it is said. <b>The gesture can come before, during or after the word, so judge the whole clip.</b> A figure may stand still for a moment at the start or end of a clip.</li>
+      <li><b>Watch both figures.</b> They loop together, without sound, and are lined up so the marked word is said at the same moment in both. The sentence above the figures lights up word by word as it is said, and an orange tick on the timeline marks when the marked word starts. <b>The gesture can come before, during or after the word, so judge the whole clip.</b> <b>Replay from the word</b> restarts both clips one second before the word. A figure may stand still for a moment at the start or end of a clip.</li>
       <li><b>Decide which movement shows the meaning of the marked word better</b>, for example its shape, size, direction or motion, or pointing somewhere that goes with the word. Hand movement that only keeps time with speech does not show a word's meaning.</li>
       <li><b>Click the figure</b> whose movement shows it better, or choose <b>Neither shows it</b> or <b>Both equally</b> below the clips. If it applies, also tick <b>I can't picture a gesture for this word</b> or <b>The movements are too similar or subtle to tell</b>.</li>
     </ol>
@@ -163,9 +167,9 @@
         </label>
       </div>
       <div class="timeline">
-        <div class="track" aria-hidden="true"><i class="head" id="head"></i></div>
+        <div class="track" aria-hidden="true"><i class="wordmark" id="wordMark" hidden></i><i class="head" id="head"></i></div>
         <div class="tlrow"><span class="ticks">0 s</span>
-          <div class="controls"><button class="small" id="restart" type="button">Restart both</button><button class="small" id="slow" type="button" aria-pressed="false">Half speed</button></div>
+          <div class="controls"><button class="small" id="restart" type="button">Restart both</button><button class="small" id="fromWord" type="button">Replay from the word</button><button class="small" id="slow" type="button" aria-pressed="false">Half speed</button></div>
           <span class="ticks">4 s</span></div>
       </div>
       <div class="card qs">
@@ -287,7 +291,7 @@ function setSide(s, side) {
 }
 
 // words: [text, isTarget, start, end] in seconds of the shared 4-s loop (start null = no time for that word)
-let spans = [];
+let spans = [], wordStart = null;
 function setWords(words) {
   const utt = $("utt");
   utt.textContent = "";
@@ -319,6 +323,12 @@ function render() {
   $("pos").textContent = "Pair " + (i + 1) + " of " + items.length + " · " + answered.size + " saved";
   $("fill").style.width = (100 * answered.size / items.length) + "%";
   setWords(it.words);
+  // orange tick at the moment the marked word starts (the clips are aligned on it, so it is exact on both sides)
+  const tw = (it.words || []).find(w => w[1] && w[2] !== null);
+  wordStart = tw ? tw[2] : null;
+  $("wordMark").hidden = wordStart === null;
+  if (wordStart !== null) $("wordMark").style.left = (100 * wordStart / CLIP_SECONDS) + "%";
+  $("fromWord").disabled = wordStart === null;
   $("tw").textContent = it.focus_word || "";
   document.querySelectorAll("input[name=choice]").forEach(e => { e.checked = false; });
   $("noIdea").checked = false; $("subtle").checked = false;
@@ -330,6 +340,13 @@ function render() {
 }
 
 $("restart").addEventListener("click", () => { restarts++; restartBoth(); });
+$("fromWord").addEventListener("click", () => {
+  if (wordStart === null) return;
+  restarts++;
+  const t = Math.max(0, wordStart - 1.0), L = $("vidL"), R = $("vidR");
+  L.currentTime = t; R.currentTime = t;
+  L.play().catch(() => {}); R.play().catch(() => {});
+});
 $("slow").addEventListener("click", () => {
   slow = !slow;
   $("slow").setAttribute("aria-pressed", String(slow));
