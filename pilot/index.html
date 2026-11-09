@@ -110,7 +110,8 @@
   .optrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
   .nextrow { display: flex; align-items: center; gap: 10px; margin-left: auto; }
   .q { display: grid; gap: 8px; }
-  .label { font-weight: 600; font-size: 15px; }
+  .ask { display: grid; gap: 2px; text-align: center; }
+  .label { font-weight: 600; font-size: 16px; }
   .label b { color: var(--focus); }
   .opts { display: flex; flex-wrap: wrap; gap: 8px; }
   .opts label { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; background: var(--chip); font-size: 14px; }
@@ -154,6 +155,8 @@
       <div class="bar"><i id="fill"></i></div>
     </div>
     <div class="task">
+      <div class="ask"><span class="label" id="q1label">Which movement shows the meaning of “<b id="tw"></b>” better? <span class="sub">Click that figure, or choose an option below.</span></span>
+      <p class="hint">Pay attention to the fingers and hand movements. You can slow down or speed up the clips with the speed button.</p></div>
       <div class="speech"><div class="words" id="utt"></div></div>
       <div class="sides" id="q1" role="radiogroup" aria-labelledby="q1label">
         <label class="side" id="sideL">
@@ -175,9 +178,7 @@
           <div class="controls"><button class="small" id="restart" type="button">Restart both</button><button class="small" id="fromWord" type="button">Replay from the word</button><button class="small" id="slow" type="button" aria-pressed="true">Normal speed</button><span class="speednote" id="speedNote">Playing at half speed</span></div>
           <span class="ticks">4 s</span></div>
       </div>
-      <p class="hint">Pay attention to the fingers and hand movements.<br>You can slow down or speed up the clips with the speed button.</p>
       <div class="card qs">
-        <span class="label" id="q1label">Which movement shows the meaning of “<b id="tw"></b>” better? <span class="sub">Click that figure, or choose:</span></span>
         <div class="optrow">
           <div class="opts" id="q2">
             <label><input type="radio" name="choice" id="cNeither" value="neither">Neither shows it</label>
