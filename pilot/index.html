@@ -83,7 +83,7 @@
   .side:has(input:focus-visible) video { outline: 2px solid var(--accent); outline-offset: 3px; }
   .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
   /* Clip height follows the viewport so the sentence, both clips and the answers fit on one screen. */
-  video { height: clamp(160px, calc(100vh - 440px), 400px); width: auto; max-width: 100%; aspect-ratio: 360 / 288; display: block; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; }
+  video { height: clamp(160px, calc(100vh - 480px), 400px); width: auto; max-width: 100%; aspect-ratio: 360 / 288; display: block; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; }
   .timeline { display: grid; gap: 2px; }
   .tlrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .track { position: relative; height: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
@@ -97,6 +97,7 @@
   .words span.target.now { background: var(--focus); color: var(--focus-ink); text-decoration-color: var(--focus-ink); }
   .controls { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
 .speednote{font-size:12px;color:var(--muted);align-self:center;margin-left:4px}
+  .hint { margin: 0; text-align: center; font-size: 13px; line-height: 1.35; color: var(--muted); }
 
   .speech { border: 1px solid var(--line); border-left: 3px solid var(--focus); border-radius: 6px; padding: 8px 12px; background: var(--panel); }
   .speech small { color: var(--muted); }
@@ -171,6 +172,7 @@
           <div class="controls"><button class="small" id="restart" type="button">Restart both</button><button class="small" id="fromWord" type="button">Replay from the word</button><button class="small" id="slow" type="button" aria-pressed="true">Normal speed</button><span class="speednote" id="speedNote">Playing at half speed</span></div>
           <span class="ticks">4 s</span></div>
       </div>
+      <p class="hint">Pay attention to the fingers and hand movements.<br>You can slow down or speed up the clips with the speed button.</p>
       <div class="card qs">
         <span class="label" id="q1label">Which movement shows the meaning of “<b id="tw"></b>” better? <span class="sub">Click that figure, or choose:</span></span>
         <div class="optrow">
